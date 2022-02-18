@@ -126,10 +126,7 @@ class TelegramDB:
             self.__make_chat__()
 
         if debug:
-            if not logger:
-                self.LOGGER = getLogger()
-            else:
-                self.LOGGER = logger
+            self.LOGGER = getLogger() if not logger else logger
     
     def prepare_datapack(self, datapack_class: DataPack):
         """
@@ -142,11 +139,15 @@ class TelegramDB:
             :obj:`None`
         """
         for i in inspect.getmembers(datapack_class):
-            if not i[0].startswith('_') and not inspect.ismethod(i[1]):
-                if isinstance(i[1], Member) and i[1].is_primary:
-                    if self.debug:
-                        self.LOGGER.info(f"Initialised {datapack_class} with primary key '{i[0]}'")
-                    self.__dp_cache__[datapack_class] = i[0]
+            if (
+                not i[0].startswith('_')
+                and not inspect.ismethod(i[1])
+                and isinstance(i[1], Member)
+                and i[1].is_primary
+            ):
+                if self.debug:
+                    self.LOGGER.info(f"Initialised {datapack_class} with primary key '{i[0]}'")
+                self.__dp_cache__[datapack_class] = i[0]
     
     def commit(self, datapack: DataPack):
         """
@@ -285,7 +286,7 @@ class TelegramDB:
             :obj:`bool`
         """
         datapack = self.__fill_datapack(datapack)
-        if not datapack.__datapack_name__ in self.__datapacks__:
+        if datapack.__datapack_name__ not in self.__datapacks__:
             return False
         msg_id = int(self.__datapacks__[datapack.__datapack_name__]["id"])
         del self.__datapacks__[datapack.__datapack_name__]
@@ -301,8 +302,7 @@ class TelegramDB:
         Returns:
             :obj:`bool`
         """
-        client = self.__telegram_client__
-        if client:
+        if client := self.__telegram_client__:
             if isinstance(client, Client):
                 return self.__loop__.run_until_complete(client.delete_messages(chat_id=self.__chat_id__, message_ids=msg_id))
             elif isinstance(client, TelegramClient):
